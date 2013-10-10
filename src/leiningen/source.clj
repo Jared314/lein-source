@@ -58,10 +58,12 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 (defn- read-project-string [args]
   (let [profiles [:default]]
     (locking read-project-string
-      (binding [*ns* (find-ns 'leiningen.core.project)]
-        (try (load-string args)
-          (catch Exception e
-            (throw (Exception. (format "Error loading supplied string.") e))))
+      (binding [*ns* (the-ns 'leiningen.core.project)
+                *file* (.getCanonicalFile (io/file "non-existent-file"))]
+        (load-string args)
+;        (try (load-string args)
+;          (catch Exception e
+;            (throw (Exception. (format "Error loading supplied string.") e))))
         (let [project (resolve 'leiningen.core.project/project)]
           (when-not project
             (throw (Exception. (format "Supplied string must define project map"))))
@@ -75,13 +77,13 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
   (throw (UnsupportedOperationException.)))
 
 (defn read-project [f f-args]
-  (let [valuetype (string/lower-case f)]
+  (let [sourcetype (string/lower-case f)]
     (project/init-project
-     (case valuetype
-       "-file"   (read-project-file f-args)
-       "-string" (read-project-string f-args)
-       "-git"    (read-project-git f-args)
-       "-url"    (read-project-url f-args)))))
+     (case sourcetype
+       "--file"   (read-project-file f-args)
+       "--string" (read-project-string f-args)
+       "--git"    (read-project-git f-args)
+       "--url"    (read-project-url f-args)))))
 
 
 
