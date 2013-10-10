@@ -9,7 +9,10 @@
 ;; Task Chaining
 
 (defn- normalize-args [args]
-  (string/replace args #",$" ""))
+  (let [loc (inc (count (take-while #(not (.endsWith % ",")) args)))
+        [taskargs otherargs] (split-at loc args)]
+    [(map #(string/replace % #",$" "") taskargs)
+     otherargs]))
 
 
 
@@ -52,8 +55,8 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
           (ns-unmap 'leiningen.core.project 'project)
           (project/init-profiles (project/project-with-profiles @project) profiles))))))
 
-(defn- read-project-stdin [args]
-  (let [data (slurp (System/in))]
+(defn- read-project-stream [instream]
+  (let [data (slurp instream)]
     (read-project-string data)))
 
 (defn- read-project-git [args]
@@ -64,15 +67,15 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
     (when (= 200 (:status result))
       (read-project-string (:body result)))))
 
-(defn read-project [f f-args]
-  (let [sourcetype (string/lower-case f)]
+(defn read-project [f-args]
+  (let [sourcetype (string/lower-case (first f-args))]
     (project/init-project
      (case sourcetype
-       "--file"   (read-project-file f-args)
-       "--string" (read-project-string f-args)
-       "--git"    (read-project-git f-args)
-       "--url"    (read-project-url f-args)
-       "--stdin"  (read-project-stdin f-args)))))
+       "--file"   (read-project-file (second f-args))
+       "--string" (read-project-string (second f-args))
+       "--git"    (read-project-git (second f-args))
+       "--url"    (read-project-url (second f-args))
+       "--stdin"  (read-project-stream *in*)))))
 
 
 
@@ -80,8 +83,8 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 (defn ^:no-project-needed ^:higher-order
   source
   "A Leiningen plugin to pull project configuration from different locations."
-  [project f f-args & args]
-  (let [f-args (normalize-args f-args)
-        realproject (read-project f f-args)]
+  [project & args]
+  (let [[f-args other-args] (normalize-args args)
+        realproject (read-project f-args)]
     (when (:min-lein-version realproject) (verify-min-version realproject))
-    (apply (partial ldo/do realproject) args)))
+    (apply (partial ldo/do realproject) other-args)))
