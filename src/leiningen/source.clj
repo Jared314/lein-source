@@ -90,7 +90,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 ;; TODO: add project file exception handling
 (defn ^:no-project-needed ^:higher-order
   source
-  "I don't do a lot."
+  "A Leiningen plugin to pull project configuration from different locations."
   [project f f-args & args]
   (let [f-args (normalize-args f-args)
         realproject (read-project f f-args)]
