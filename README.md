@@ -1,6 +1,6 @@
 # lein-source
 
-A Leiningen plugin to pull project configuration from different locations.
+A Leiningen v2.0 plugin to pull project configuration from different locations.
 
 ## Install
 
