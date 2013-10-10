@@ -53,7 +53,8 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
           (project/init-profiles (project/project-with-profiles @project) profiles))))))
 
 (defn- read-project-stdin [args]
-  (throw (UnsupportedOperationException.)))
+  (let [data (slurp (System/in))]
+    (read-project-string data)))
 
 (defn- read-project-git [args]
   (throw (UnsupportedOperationException.)))
