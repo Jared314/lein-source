@@ -3,6 +3,7 @@
             [clojure.java.io :as io]
             [leiningen.core.main :as main]
             [leiningen.core.project :as project]
+            [leiningen.do :as ldo]
             [clj-http.client :as http]))
 
 ;; Task Chaining
@@ -10,31 +11,9 @@
 (defn- normalize-args [args]
   (string/replace args #",$" ""))
 
-(defn- conj-to-last [coll x]
-  (update-in coll [(dec (count coll))] conj x))
-
-(defn ^:internal group-args
-  ([args] (reduce group-args [[]] args))
-  ([groups arg]
-   (if (.endsWith arg ",")
-     (-> groups
-         (conj-to-last (subs arg 0 (dec (count arg))))
-         (conj []))
-     (conj-to-last groups arg))))
-
 
 
 ;; Initialization
-
-(defn ^:internal version-satisfies? [v1 v2]
-  (let [v1 (map #(Integer. %) (re-seq #"\d+" (first (string/split v1 #"-" 2))))
-        v2 (map #(Integer. %) (re-seq #"\d+" (first (string/split v2 #"-" 2))))]
-    (loop [versions (map vector v1 v2)
-           [seg1 seg2] (first versions)]
-      (cond (empty? versions) true
-            (= seg1 seg2) (recur (rest versions) (first (rest versions)))
-            (> seg1 seg2) true
-            (< seg1 seg2) false))))
 
 (def ^:private min-version-warning
   "*** Warning: This project requires Leiningen %s, but you have %s ***
@@ -44,7 +23,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 
 (defn- verify-min-version [{:keys [min-lein-version]}]
   (let [lv (main/leiningen-version)]
-    (when-not (version-satisfies? lv min-lein-version)
+    (when-not (main/version-satisfies? lv min-lein-version)
       (main/info (format min-version-warning min-lein-version lv)))))
 
 
@@ -74,7 +53,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
           (project/init-profiles (project/project-with-profiles @project) profiles))))))
 
 (defn- read-project-stdin [args]
-  (read-project-string ""))
+  (throw (UnsupportedOperationException.)))
 
 (defn- read-project-git [args]
   (throw (UnsupportedOperationException.)))
@@ -104,5 +83,4 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
   (let [f-args (normalize-args f-args)
         realproject (read-project f f-args)]
     (when (:min-lein-version realproject) (verify-min-version realproject))
-    (doseq [arg-group (group-args args)]
-      (main/resolve-and-apply realproject arg-group))))
+    (apply (partial ldo/do realproject) args)))
