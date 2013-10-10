@@ -15,9 +15,9 @@ Put `[lein-source "0.1.0-SNAPSHOT"]` into the `:plugins` vector of your project.
 
 ## Usage
 
-    $ lein source --file project2.clj, run
+    $ lein source --file project2.txt, run
 
-    $ lein source --file test.txt, repl
+    $ lein source --string "(defproject test1 \"0.1.0\" :description \"Test project\")", repl
 
 ## License
 
