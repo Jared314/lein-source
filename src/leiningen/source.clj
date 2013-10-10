@@ -55,15 +55,17 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
     (when (.exists f)
       (project/read (.getCanonicalPath  f)))))
 
+;;TODO: Using eval and read-string because load-string caused NullReferenceException
+;;      in defproject call
+;;      Replace eval usage with something else
 (defn- read-project-string [args]
   (let [profiles [:default]]
     (locking read-project-string
       (binding [*ns* (the-ns 'leiningen.core.project)
-                *file* (.getCanonicalFile (io/file "non-existent-file"))]
-        (load-string args)
-;        (try (load-string args)
-;          (catch Exception e
-;            (throw (Exception. (format "Error loading supplied string.") e))))
+                *file* (.getCanonicalPath (io/file "non-existent-file"))]
+        (try (eval (read-string args))
+          (catch Exception e
+            (throw (Exception. (format "Error loading supplied string.") e))))
         (let [project (resolve 'leiningen.core.project/project)]
           (when-not project
             (throw (Exception. (format "Supplied string must define project map"))))
