@@ -21,6 +21,10 @@ Put `[lein-source "0.1.0-SNAPSHOT"]` into the `:plugins` vector of your project.
 
     $ lein source --url "https://raw.github.com/technomancy/leiningen/master/project.clj", repl
 
+Chained tasks are allowed using the same syntax as `lein do`.
+
+    $ lein source --file project2.txt, clean, test foo.test-core, jar
+
 ## License
 
 Copyright © 2013 Jared Lobberecht
