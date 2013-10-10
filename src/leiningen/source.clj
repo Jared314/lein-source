@@ -6,6 +6,9 @@
 
 ;; Task Chaining
 
+(defn- normalize-args [args]
+  (string/replace args #",$" ""))
+
 (defn- conj-to-last [coll x]
   (update-in coll [(dec (count coll))] conj x))
 
@@ -50,7 +53,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 (defn- read-project-file [args]
   (let [f (io/file args)]
     (when (.exists f)
-      (project/read f))))
+      (project/read (.getCanonicalPath  f)))))
 
 (defn- read-project-string [args]
   (let [profiles [:default]]
@@ -75,7 +78,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
   (let [valuetype (string/lower-case f)]
     (project/init-project
      (case valuetype
-       "-projectfile"   (read-project-file f-args)
+       "-file"   (read-project-file f-args)
        "-string" (read-project-string f-args)
        "-git"    (read-project-git f-args)
        "-url"    (read-project-url f-args)))))
@@ -87,7 +90,8 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
   source
   "I don't do a lot."
   [project f f-args & args]
-  (let [realproject (read-project f f-args)]
+  (let [f-args (normalize-args f-args)
+        realproject (read-project f f-args)]
     (when (:min-lein-version realproject) (verify-min-version realproject))
     (doseq [arg-group (group-args args)]
       (main/resolve-and-apply realproject arg-group))))
