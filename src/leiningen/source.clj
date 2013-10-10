@@ -72,6 +72,9 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
           (ns-unmap 'leiningen.core.project 'project)
           (project/init-profiles (project/project-with-profiles @project) profiles))))))
 
+(defn- read-project-stdin [args]
+  (read-project-string ""))
+
 (defn- read-project-git [args]
   (throw (UnsupportedOperationException.)))
 
@@ -85,7 +88,8 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
        "--file"   (read-project-file f-args)
        "--string" (read-project-string f-args)
        "--git"    (read-project-git f-args)
-       "--url"    (read-project-url f-args)))))
+       "--url"    (read-project-url f-args)
+       "--stdin"  (read-project-stdin f-args)))))
 
 
 
