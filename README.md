@@ -19,6 +19,8 @@ Put `[lein-source "0.1.0-SNAPSHOT"]` into the `:plugins` vector of your project.
 
     $ lein source --string "(defproject test1 \"0.1.0\" :description \"Test project\")", repl
 
+    $ lein source --url "https://raw.github.com/technomancy/leiningen/master/project.clj", repl
+
 ## License
 
 Copyright © 2013 Jared Lobberecht

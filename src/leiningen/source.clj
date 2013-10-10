@@ -2,7 +2,8 @@
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
             [leiningen.core.main :as main]
-            [leiningen.core.project :as project]))
+            [leiningen.core.project :as project]
+            [clj-http.client :as http]))
 
 ;; Task Chaining
 
@@ -79,7 +80,9 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
   (throw (UnsupportedOperationException.)))
 
 (defn- read-project-url [args]
-  (throw (UnsupportedOperationException.)))
+  (let [result (http/get args)]
+    (when (= 200 (:status result))
+      (read-project-string (:body result)))))
 
 (defn read-project [f f-args]
   (let [sourcetype (string/lower-case f)]
