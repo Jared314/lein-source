@@ -6,12 +6,12 @@ A Leiningen v2.0 plugin to pull project configuration from different locations.
 
 User-level:
 
-Put `[lein-source "0.1.0-SNAPSHOT"]` into the `:plugins` vector of your
+Put `[lein-source "0.1.0"]` into the `:plugins` vector of your
 `:user` profile.
 
 Project-level:
 
-Put `[lein-source "0.1.0-SNAPSHOT"]` into the `:plugins` vector of your project.clj.
+Put `[lein-source "0.1.0"]` into the `:plugins` vector of your project.clj.
 
 ## Usage
 
