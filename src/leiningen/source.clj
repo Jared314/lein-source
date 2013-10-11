@@ -4,7 +4,10 @@
             [leiningen.core.main :as main]
             [leiningen.core.project :as project]
             [leiningen.do :as ldo]
-            [clj-http.client :as http]))
+            [clj-http.client :as http]
+            [clj-jgit.porcelain :as jgit]
+            [clj-jgit.internal :as i])
+  (:import [org.eclipse.jgit.treewalk TreeWalk]))
 
 ;; Task Chaining
 
@@ -60,7 +63,20 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
     (read-project-string data)))
 
 (defn- read-project-git [args]
-  (throw (UnsupportedOperationException.)))
+  (let [repo-path (nth args 0)
+        commitid (nth args 1 "HEAD")
+        objectpath (nth args 2 "project.clj")]
+    (jgit/with-repo repo-path
+                    (let [reader (.newObjectReader (.getRepository repo))]
+                      (when-let [o (i/resolve-object commitid repo)]
+                        (-> (TreeWalk/forPath reader
+                                              objectpath
+                                              (into-array [(.parseTree rev-walk o)]))
+                            (.getObjectId 0)
+                            (->> (.open reader))
+                            (.getBytes)
+                            (String. "utf-8")
+                            (read-project-string)))))))
 
 (defn- read-project-url [args]
   (let [result (http/get args)]
@@ -73,7 +89,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
      (case sourcetype
        "--file"   (read-project-file (second f-args))
        "--string" (read-project-string (second f-args))
-       "--git"    (read-project-git (second f-args))
+       "--git"    (read-project-git (drop 1 f-args))
        "--url"    (read-project-url (second f-args))
        "--stdin"  (read-project-stream *in*)))))
 

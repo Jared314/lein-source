@@ -15,13 +15,19 @@ Put `[lein-source "0.1.0-SNAPSHOT"]` into the `:plugins` vector of your project.
 
 ## Usage
 
-    $ lein source --file project2.txt, run
+    $ lein source --file project2.txt, repl
 
     $ lein source --string "(defproject test1 \"0.1.0\" :description \"Test project\")", repl
 
     $ lein source --url "https://raw.github.com/technomancy/leiningen/master/project.clj", repl
 
-    $ cat test.txt | lein source --stdin, run
+    $ cat test.txt | lein source --stdin, repl
+
+    $ lein source --git ., repl
+
+    $ lein source --git . 36c5da189d50, repl
+
+    $ lein source --git ~/Desktop/project1 HEAD test.txt, repl
 
 Chained tasks are allowed using the same syntax as `lein do`.
 
