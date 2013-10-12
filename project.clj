@@ -1,6 +1,6 @@
-(defproject lein-source "0.1.0"
+(defproject lein-source "0.1.1-SNAPSHOT"
   :description "A Leiningen plugin to pull project configuration from different locations."
-  :url "https://github.com/Jared314/lein-source/tree/v0.1.0"
+  :url "https://github.com/Jared314/lein-source/tree/v0.1.1"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[clj-jgit "0.5.3"]]

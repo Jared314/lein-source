@@ -1,6 +1,7 @@
 (ns leiningen.source
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
+            [clojure.walk :as walk]
             [leiningen.core.main :as main]
             [leiningen.core.project :as project]
             [leiningen.do :as ldo]
@@ -36,33 +37,35 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 
 ;; Read Project Form
 
-(defn- read-project-file [args]
-  (let [f (io/file args)]
-    (when (.exists f)
-      (project/read (.getCanonicalPath  f)))))
+(defn- eval-unquoted-forms
+  "Inside defproject forms, unquoting (~) allows for arbitrary evaluation."
+  [args]
+  (walk/walk (fn [item]
+               (cond (and (seq? item) (= `unquote (first item))) (eval (second item))
+                     :else (let [result (eval-unquoted-forms item)]
+                             ;; clojure.walk strips metadata
+                             (if-let [m (meta item)]
+                               (with-meta result m)
+                               result))))
+             identity
+             args))
 
-;;TODO: Using eval and read-string because load-string caused NullReferenceException
-;;      in defproject call
-;;      Replace eval usage with something else
-(defn- read-project-string [args]
-  (let [profiles [:default]]
-    (locking read-project-string
-      (binding [*ns* (the-ns 'leiningen.core.project)
-                *file* (.getCanonicalPath (io/file "non-existent-file"))]
-        (try (eval (read-string args))
-          (catch Exception e
-            (throw (Exception. (format "Error loading supplied string.") e))))
-        (let [project (resolve 'leiningen.core.project/project)]
-          (when-not project
-            (throw (Exception. (format "Supplied string must define project map"))))
-          (ns-unmap 'leiningen.core.project 'project)
-          (project/init-profiles (project/project-with-profiles @project) profiles))))))
+(defn read-project-form
+  ([form] (read-project-form form [:default]))
+  ([form profiles] (read-project-form form profiles main/*cwd*))
+  ([[_ project-name version & {:as args}] profiles current-dir]
+   (let [current-dir-path (if (string? current-dir)
+                            current-dir
+                            (.getAbsolutePath (io/as-file current-dir)))]
+     (project/make (eval-unquoted-forms args) project-name version current-dir-path))))
 
-(defn- read-project-stream [instream]
-  (let [data (slurp instream)]
-    (read-project-string data)))
+(defn read-project-string [args]
+  (read-project-form (read-string args)))
 
-(defn- read-project-git [args]
+(defn read-project-slurp [args]
+  (read-project-string (slurp args)))
+
+(defn read-project-git [args]
   (let [repo-path (nth args 0)
         commitid (nth args 1 "HEAD")
         objectpath (nth args 2 "project.clj")]
@@ -78,20 +81,26 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
                             (String. "utf-8")
                             (read-project-string)))))))
 
-(defn- read-project-url [args]
+(defn read-project-url [args]
   (let [result (http/get args)]
     (when (= 200 (:status result))
       (read-project-string (:body result)))))
 
 (defn read-project [f-args]
-  (let [sourcetype (string/lower-case (first f-args))]
-    (project/init-project
-     (case sourcetype
-       "--file"   (read-project-file (second f-args))
-       "--string" (read-project-string (second f-args))
-       "--git"    (read-project-git (drop 1 f-args))
-       "--url"    (read-project-url (second f-args))
-       "--stdin"  (read-project-stream *in*)))))
+  (let [sourcetype (string/lower-case (first f-args))
+        profiles [:default]]
+    (try
+      (-> (case sourcetype
+            "--file"   (read-project-slurp (second f-args))
+            "--string" (read-project-string (second f-args))
+            "--git"    (read-project-git (drop 1 f-args))
+            "--url"    (read-project-url (second f-args))
+            "--stdin"  (read-project-slurp *in*))
+          project/project-with-profiles
+          (project/init-profiles profiles)
+          project/init-project)
+      (catch Exception e
+        (throw (Exception. "Error loading supplied project." e))))))
 
 
 
