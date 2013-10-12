@@ -34,11 +34,11 @@
 
 ;; Task Chaining
 
-(defn- normalize-args [args]
-  (let [loc (inc (count (take-while #(not (.endsWith % ",")) args)))
-        [taskargs otherargs] (split-at loc args)]
-    [(map #(string/replace % #",$" "") taskargs)
-     otherargs]))
+(defn- split-args [args]
+  (let [[a b] (split-with #(not (.endsWith % ",")) args)
+        x (first b)
+        x (subs x 0 (dec (count x)))]
+    [(concat a (list x)) (rest b)]))
 
 
 
@@ -130,7 +130,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
   source
   "A Leiningen plugin to pull project configuration from different locations."
   [project & args]
-  (let [[f-args other-args] (normalize-args args)
+  (let [[f-args other-args] (split-args args)
         realproject (read-project f-args)]
     (when (:min-lein-version realproject) (verify-min-version realproject))
     (apply (partial ldo/do realproject) other-args)))
