@@ -5,7 +5,6 @@
             [leiningen.core.main :as main]
             [leiningen.core.project :as project]
             [leiningen.do :as ldo]
-            [clj-http.client :as http]
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.internal :as i])
   (:import [org.eclipse.jgit.treewalk TreeWalk]))
@@ -81,11 +80,6 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
                             (String. "utf-8")
                             (read-project-string)))))))
 
-(defn read-project-url [args]
-  (let [result (http/get args)]
-    (when (= 200 (:status result))
-      (read-project-string (:body result)))))
-
 (defn read-project [f-args]
   (let [sourcetype (string/lower-case (first f-args))
         profiles [:default]]
@@ -94,7 +88,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
             "--file"   (read-project-slurp (second f-args))
             "--string" (read-project-string (second f-args))
             "--git"    (read-project-git (drop 1 f-args))
-            "--url"    (read-project-url (second f-args))
+            "--url"    (read-project-slurp (second f-args))
             "--stdin"  (read-project-slurp *in*))
           project/project-with-profiles
           (project/init-profiles profiles)
