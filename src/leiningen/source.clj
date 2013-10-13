@@ -7,8 +7,7 @@
             [leiningen.do :as ldo]
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.internal :as i])
-  (:import [org.eclipse.jgit.treewalk TreeWalk]
-           [java.io FileInputStream FileDescriptor BufferedInputStream]))
+  (:import [org.eclipse.jgit.treewalk TreeWalk]))
 
 
 
