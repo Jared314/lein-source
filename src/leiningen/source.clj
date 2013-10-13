@@ -110,7 +110,6 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 
 
 
-;; TODO: add project file exception handling
 (defn ^:no-project-needed ^:higher-order
   source
   "A Leiningen plugin to pull project configuration from different locations."
@@ -118,4 +117,4 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
   (let [[f-args other-args] (split-args args)
         realproject (read-project f-args)]
     (when (:min-lein-version realproject) (verify-min-version realproject))
-    (apply (partial ldo/do realproject) other-args)))
+    (when (first other-args) (apply (partial ldo/do realproject) other-args))))
