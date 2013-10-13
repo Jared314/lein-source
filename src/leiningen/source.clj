@@ -7,29 +7,9 @@
             [leiningen.do :as ldo]
             [clj-jgit.porcelain :as jgit]
             [clj-jgit.internal :as i])
-  (:import [org.eclipse.jgit.treewalk TreeWalk]))
+  (:import [org.eclipse.jgit.treewalk TreeWalk]
+           [java.io FileInputStream FileDescriptor BufferedInputStream]))
 
-;; Helpers
-
-(defn- normalize-slurp-opts
-  [opts]
-  (if (string? (first opts))
-    (do
-      (println "WARNING: (slurp f enc) is deprecated, use (slurp f :encoding enc).")
-      [:encoding (first opts)])
-    opts))
-
-(defn slurp-without-close
-  ([f & opts]
-     (let [opts (normalize-slurp-opts opts)
-           sb (StringBuilder.)]
-       (let [#^java.io.Reader r (apply io/reader f opts)]
-         (loop [c (.read r)]
-           (if (neg? c)
-             (str sb)
-             (do
-               (.append sb (char c))
-               (recur (.read r)))))))))
 
 
 ;; Task Chaining
@@ -84,12 +64,18 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 (defn read-project-string [args]
   (read-project-form (read-string args)))
 
-(defn read-project-slurp
-  ([args] (read-project-slurp args true))
-  ([args close-stream]
-     (read-project-string (if close-stream
-                            (slurp args)
-                            (slurp-without-close args)))))
+(defn read-project-slurp [args]
+  (read-project-string (slurp args)))
+
+;; Reads without closing the stream, unlike slurp
+(defn read-project-stdin [r]
+  (let [sb (StringBuilder.)]
+    (loop [c (.read r)]
+      (if (neg? c)
+        (read-project-string (str sb))
+        (do
+          (.appendCodePoint sb c)
+          (recur (.read r)))))))
 
 (defn read-project-git [args]
   (let [repo-path (nth args 0)
@@ -116,7 +102,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
             "--string" (read-project-string (second f-args))
             "--git"    (read-project-git (drop 1 f-args))
             "--url"    (read-project-slurp (second f-args))
-            "--stdin"  (read-project-slurp *in* false))
+            "--stdin"  (read-project-stdin *in*))
           project/project-with-profiles
           (project/init-profiles profiles)
           project/init-project)
