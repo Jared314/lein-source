@@ -14,10 +14,10 @@
 ;; Task Chaining
 
 (defn- split-args [args]
-  (let [[a b] (split-with #(not (.endsWith % ",")) args)
+  (let [{a 0 b 1 :or {a '() b '()}} (split-with #(not (.endsWith % ",")) args)
         x (first b)
-        x (subs x 0 (dec (count x)))]
-    [(concat a (list x)) (rest b)]))
+        x (when x (subs x 0 (dec (count x))))]
+    [(concat a (when x (list x))) (rest b)]))
 
 
 
