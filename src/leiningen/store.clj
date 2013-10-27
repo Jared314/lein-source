@@ -21,6 +21,10 @@
    (when (not= eof data)
      (cons data (lazy-seq (lazy-read rdr (read rdr false eof) eof))))))
 
+(defn read-all [in]
+  (with-open [rdr (clojure.lang.LineNumberingPushbackReader. (io/reader in))]
+    (doall (lazy-read rdr))))
+
 (defn analyze-form [current-ns x]
   (let [op (first x)
         ns? (= op 'ns)
@@ -50,7 +54,7 @@
                        (lazy-read r)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Write-only File-based "DB"
+;; File-based "DB"
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defrecord Leaf [nss declares forms])
