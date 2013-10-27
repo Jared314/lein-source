@@ -3,5 +3,7 @@
   :url "https://github.com/Jared314/lein-source/tree/v0.2.0"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[clj-jgit "0.5.3"]]
+  :dependencies [[clj-jgit "0.5.3"]
+                 [com.datomic/datomic-free "0.8.4020.24"]
+                 [commons-codec "1.7"]]
   :eval-in-leiningen true)
