@@ -123,7 +123,7 @@
 
 
 (defn
-  store
+  base
   "A Leiningen plugin to store forms to a backend."
   [project & args]
   (let [targetpath (io/as-file (first args))]
