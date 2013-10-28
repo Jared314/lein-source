@@ -40,6 +40,10 @@ Chained tasks are allowed using the same syntax as `lein do`.
 
     $ echo "(ns stuff.core) (defn thing [] true)" | lein base .
 
+Chained tasks are allowed using the same syntax as `lein do`.
+
+    $ echo "(ns stuff.core) (defn thing [] true)" | lein base ., jar
+
 ## License
 
 Copyright © 2013 Jared Lobberecht

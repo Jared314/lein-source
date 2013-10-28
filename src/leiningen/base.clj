@@ -12,6 +12,15 @@
            [java.io File PushbackReader]))
 
 
+;; Task Chaining
+
+(defn- split-args [args]
+  (let [{a 0 b 1 :or {a '() b '()}} (split-with #(not (.endsWith % ",")) args)
+        x (first b)
+        x (when x (subs x 0 (dec (count x))))]
+    [(concat a (when x (list x))) (rest b)]))
+
+
 (defn update-values [f m]
   (into {} (for [[k v] m] [k (f k v)])))
 
@@ -101,10 +110,11 @@
   base
   "A Leiningen plugin to read, write, and run forms in a backend."
   [project & args]
-  (let [targetpath (.getCanonicalFile (io/as-file (first args)))]
+  (let [[f-args other-args] (split-args args)
+        targetpath (.getCanonicalFile (io/as-file (first f-args)))]
     (->> *in*
          analyze
          (generate-ns-writes (io/file targetpath "src"))
          (map #(%))
          dorun)
-    (println "Done.")))
+    (when (first other-args) (apply (partial ldo/do project) other-args))))
