@@ -13,7 +13,7 @@ Project-level:
 
 Put `[lein-source "0.1.0"]` into the `:plugins` vector of your project.clj.
 
-## Usage
+## Source Task Usage
 
     $ lein source --file project2.txt, repl
 
@@ -35,6 +35,10 @@ Note: Mixing `--stdin` and `repl` is not supported.
 Chained tasks are allowed using the same syntax as `lein do`.
 
     $ lein source --file project2.txt, clean, test foo.test-core, jar
+
+## Base Task Usage
+
+    $ echo "(ns stuff.core) (defn thing [] true)" | lein base .
 
 ## License
 
