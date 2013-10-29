@@ -9,8 +9,20 @@
             [clj-jgit.internal :as i])
   (:import [org.eclipse.jgit.treewalk TreeWalk]
            [java.net URL Proxy URLStreamHandlerFactory URLStreamHandler URLConnection]
-           [java.io File PushbackReader]))
+           [java.io File PushbackReader StringReader]))
 
+
+(defn update-values [f m]
+  (into {} (for [[k v] m] [k (f k v)])))
+
+(defn index-coll
+  ([f coll] (index-coll f {} coll))
+  ([f base-coll coll]
+   (into base-coll (for [x coll] [(f x) x]))))
+
+(defn namespace->path
+  ([n] (namespace->path n "clj"))
+  ([n ext] (-> n namespace-munge (clojure.string/replace \. \/) (str "." ext))))
 
 ;; Task Chaining
 
@@ -19,10 +31,6 @@
         x (first b)
         x (when x (subs x 0 (dec (count x))))]
     [(concat a (when x (list x))) (rest b)]))
-
-
-(defn update-values [f m]
-  (into {} (for [[k v] m] [k (f k v)])))
 
 ;;;;;;;;;;;;;;;;;;;
 ;; Form Reading
@@ -90,15 +98,31 @@
                    (clojure.string/join "\n\n" (map :clj/form (format-forms k v))))
                  data))
 
+(defn merge-with-existing-files [basepath m]
+  (let [fs (filter (memfn exists)
+                   (map #(io/file basepath (namespace->path %))
+                        (keys m)))
+        joined-fs (string/join "\n\n" (map slurp fs))
+        existing-m (when-not (empty? joined-fs)
+                     (group-by :clj/ns (analyze (StringReader. joined-fs))))]
+    (if (empty? existing-m)
+      m
+      (merge-with #(vals (merge (index-coll :clj/def %1)
+                                (index-coll :clj/def %2)))
+                  existing-m
+                  m))))
+
 (defn generate-writes [basepath [k v]]
-  (let [p (-> k namespace-munge (clojure.string/replace \. \/) (str ".clj"))
-        f (io/file basepath p)]
-    [#(.mkdirs (.getParentFile f))
-     #(spit f v)]))
+  (let [f (io/file basepath (namespace->path k))]
+    (if (.exists f)
+      [#(spit f v)]
+      [#(.mkdirs (.getParentFile f))
+       #(spit f v)])))
 
 (defn generate-ns-writes [basepath m]
   (->> m
        (group-by :clj/ns)
+       (merge-with-existing-files basepath)
        format-namespaces
        (reduce #(into %1 (generate-writes basepath %2)) [])))
 
