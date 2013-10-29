@@ -24,6 +24,25 @@
   ([n] (namespace->path n "clj"))
   ([n ext] (-> n namespace-munge (clojure.string/replace \. \/) (str "." ext))))
 
+(defprotocol TextBlockStore
+  (exists? [this n] nil)
+  (read-ns [this n] nil)
+  (generate-ns-writes [this n v] nil))
+
+(defrecord FileStorage [basepath]
+  TextBlockStore
+  (exists? [this n]
+           (let [f (io/file basepath (namespace->path n))]
+             (and (.exists f)
+                  (.isFile f))))
+  (read-ns [this n] (slurp (io/file basepath (namespace->path n))))
+  (generate-ns-writes [this n v]
+                      (let [f (io/file basepath (namespace->path n))]
+                        (if (exists? this n)
+                          [#(spit f v)]
+                          [#(.mkdirs (.getParentFile f))
+                           #(spit f v)]))))
+
 ;; Task Chaining
 
 (defn- split-args [args]
@@ -98,13 +117,11 @@
                    (clojure.string/join "\n\n" (map :clj/form (format-forms k v))))
                  data))
 
-(defn merge-with-existing-files [basepath m]
-  (let [fs (filter (memfn exists)
-                   (map #(io/file basepath (namespace->path %))
-                        (keys m)))
-        joined-fs (string/join "\n\n" (map slurp fs))
-        existing-m (when-not (empty? joined-fs)
-                     (group-by :clj/ns (analyze (StringReader. joined-fs))))]
+(defn merge-with-existing-files [storage m]
+  (let [nss (filter (partial exists? storage) (keys m))
+        joined-forms (string/join "\n\n" (map (partial read-ns storage) nss))
+        existing-m (when-not (empty? joined-forms)
+                     (group-by :clj/ns (analyze (StringReader. joined-forms))))]
     (if (empty? existing-m)
       m
       (merge-with #(vals (merge (index-coll :clj/def %1)
@@ -112,19 +129,13 @@
                   existing-m
                   m))))
 
-(defn generate-writes [basepath [k v]]
-  (let [f (io/file basepath (namespace->path k))]
-    (if (.exists f)
-      [#(spit f v)]
-      [#(.mkdirs (.getParentFile f))
-       #(spit f v)])))
-
-(defn generate-ns-writes [basepath m]
+(defn generate-writes [storage m]
   (->> m
        (group-by :clj/ns)
-       (merge-with-existing-files basepath)
+       (merge-with-existing-files storage)
        format-namespaces
-       (reduce #(into %1 (generate-writes basepath %2)) [])))
+       (reduce #(let [[k v] %2]
+                  (into %1 (generate-ns-writes storage k v))) [])))
 
 
 ;;
@@ -135,10 +146,11 @@
   "A Leiningen plugin to read, write, and run forms in a backend."
   [project & args]
   (let [[f-args other-args] (split-args args)
-        targetpath (.getCanonicalFile (io/as-file (first f-args)))]
+        targetpath (.getCanonicalFile (io/as-file (first f-args)))
+        storage (FileStorage. (io/file targetpath "src"))]
     (->> *in*
          analyze
-         (generate-ns-writes (io/file targetpath "src"))
+         (generate-writes storage)
          (map #(%))
          dorun)
     (when (first other-args) (apply (partial ldo/do project) other-args))))
