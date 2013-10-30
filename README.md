@@ -1,19 +1,21 @@
 # lein-source
 
-A Leiningen v2.0 plugin to pull project configuration from different locations.
+A Leiningen v2 plugin that provides the `source` and `base` tasks.
 
 ## Install
 
 User-level:
 
-Put `[lein-source "0.1.0"]` into the `:plugins` vector of your
+Put `[lein-source "0.2.0"]` into the `:plugins` vector of your
 `:user` profile.
 
 Project-level:
 
-Put `[lein-source "0.1.0"]` into the `:plugins` vector of your project.clj.
+Put `[lein-source "0.2.0"]` into the `:plugins` vector of your project.clj.
 
-## Source Task Usage
+## Source Task
+
+The source task will pull the project configuration from a locations other than your local project.clj file.
 
     $ lein source --file project2.txt, repl
 
@@ -36,7 +38,9 @@ Chained tasks are allowed using the same syntax as `lein do`.
 
     $ lein source --file project2.txt, clean, test foo.test-core, jar
 
-## Base Task Usage
+## Base Task
+
+The base task will write clojure forms, from the input stream, into the correct file and directory structure, based on the specified namespaces.
 
     $ echo "(ns stuff.core) (defn thing [] true)" | lein base .
 
