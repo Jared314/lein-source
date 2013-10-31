@@ -1,4 +1,4 @@
-(defproject lein-source "0.2.0"
+(defproject lein-source "0.3.0-SNAPSHOT"
   :description "A Leiningen plugin to pull project configuration from different locations."
   :url "https://github.com/Jared314/lein-source/tree/v0.2.0"
   :license {:name "Eclipse Public License"
