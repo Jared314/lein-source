@@ -1,11 +1,11 @@
-(ns leiningen.base.blockstore
+(ns leiningen.base.storage-provider.textblockstore
   (:require [clojure.java.io :as io]
             [clojure.string :as string]))
 
 (defprotocol TextBlockStore
-  (exists? [this n] nil)
-  (read-ns [this n] nil)
-  (generate-ns-writes [this n v] nil))
+  (exists? [this n])
+  (read-ns [this n])
+  (generate-ns-writes [this n v]))
 
 
 (defn- namespace->path
