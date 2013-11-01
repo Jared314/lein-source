@@ -6,10 +6,12 @@
             [leiningen.core.project :as project]
             [leiningen.do :as ldo]
             [clj-jgit.porcelain :as jgit]
-            [clj-jgit.internal :as i])
+            [clj-jgit.internal :as i]
+            [leiningen.base.blockstore :refer :all])
   (:import [org.eclipse.jgit.treewalk TreeWalk]
            [java.net URL Proxy URLStreamHandlerFactory URLStreamHandler URLConnection]
-           [java.io File PushbackReader StringReader]))
+           [java.io File PushbackReader StringReader]
+           [leiningen.base.blockstore FileStorage]))
 
 
 (defn update-values [f m]
@@ -20,10 +22,6 @@
   ([f base-coll coll]
    (into base-coll (for [x coll] [(f x) x]))))
 
-(defn namespace->path
-  ([n] (namespace->path n "clj"))
-  ([n ext] (-> n namespace-munge (string/replace \. \/) (str "." ext))))
-
 (defn print-dup-str [x]
   (binding [*print-dup* true]
     (prn-str x)))
@@ -33,24 +31,6 @@
     (print x)
     (flush)))
 
-(defprotocol TextBlockStore
-  (exists? [this n] nil)
-  (read-ns [this n] nil)
-  (generate-ns-writes [this n v] nil))
-
-(defrecord FileStorage [basepath]
-  TextBlockStore
-  (exists? [this n]
-           (let [f (io/file basepath (namespace->path n))]
-             (and (.exists f)
-                  (.isFile f))))
-  (read-ns [this n] (slurp (io/file basepath (namespace->path n))))
-  (generate-ns-writes [this n v]
-                      (let [f (io/file basepath (namespace->path n))]
-                        (if (exists? this n)
-                          [#(spit f v)]
-                          [#(.mkdirs (.getParentFile f))
-                           #(spit f v)]))))
 
 ;; Task Chaining
 
