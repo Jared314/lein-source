@@ -69,8 +69,8 @@
 
 (defrecord FileStorageProvider [storage analyze-fn]
   FormStorageProvider
-  (store [this forms] (generate-writes storage analyze-fn forms))
-  (query [this sym]
+  (store [_ forms] (generate-writes storage analyze-fn forms))
+  (query [_ sym]
          (let [[n s] (string/split sym #"/")]
            (when (exists? storage n)
              (let [forms (analyze-fn (read-ns storage n))]
