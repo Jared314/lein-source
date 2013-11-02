@@ -15,28 +15,22 @@
 
 (defmethod transform-value :default [v] v)
 
-(defmethod transform-value java.lang.Boolean
-  [v]
+(defmethod transform-value java.lang.Boolean [v]
   (if v "true" "false"))
 
-(defmethod transform-value java.util.regex.Pattern
-  [v]
+(defmethod transform-value java.util.regex.Pattern [v]
   (str v))
 
-(defmethod transform-value clojure.lang.PersistentVector
-  [v]
+(defmethod transform-value clojure.lang.PersistentVector [v]
   (list* (map transform-value v)))
 
-(defmethod transform-value clojure.lang.LazySeq
-  [v]
+(defmethod transform-value clojure.lang.LazySeq [v]
   (list* (map transform-value v)))
 
-(defmethod transform-value clojure.lang.PersistentHashMap
-  [m]
+(defmethod transform-value clojure.lang.PersistentHashMap [m]
   (list* (mapcat #(vector (name (key %)) (transform-value (val %))) m)))
 
-(defmethod transform-value clojure.lang.PersistentArrayMap
-  [m]
+(defmethod transform-value clojure.lang.PersistentArrayMap [m]
   (list* (mapcat #(vector (name (key %)) (transform-value (val %))) m)))
 
 (defn args-for-map
@@ -55,8 +49,7 @@
 ;; Middleware and Handler
 ;;
 
-(defn base-reply
-  [{:keys [symbol transport] :as msg}]
+(defn read-reply [{:keys [symbol transport] :as msg}]
   (let [results symbol]
     (transport/send
      transport (response-for msg :value (transform-value results)))
@@ -65,18 +58,13 @@
 (defn wrap-base [handler]
   (fn [{:keys [op] :as msg}]
     (case op
-      "leiningen.base/read" (base-reply msg)
-      "leiningen.base/write" (base-reply msg)
+      "leiningen.base/read" (read-reply msg)
       (handler msg))))
 
 (set-descriptor!
  #'wrap-base
  {:handles
   {"leiningen.base/read"
-   {:doc "Return a list of forms matching the specified namespace or symbol."
-    :requires {"symbol" "The namespace qualified symbol to lookup"}
-    :returns {"status" "done"}}
-   "leiningen.base/write"
    {:doc "Return a list of forms matching the specified namespace or symbol."
     :requires {"symbol" "The namespace qualified symbol to lookup"}
     :returns {"status" "done"}}}})
