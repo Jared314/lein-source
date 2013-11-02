@@ -1,11 +1,23 @@
 (ns leiningen.base.middleware
   (:require [clojure.string :as string]
-            [clojure.tools.nrepl.transport :as transport])
+            [clojure.java.io :as io]
+            [clojure.tools.nrepl.transport :as transport]
+            [leiningen.base.analyzer :as analyzer]
+            [leiningen.base.storage-provider :refer :all]
+            [leiningen.base.storage-provider.textblockstore :refer [->FileStorage]])
   (:use [clojure.tools.nrepl.middleware :only [set-descriptor!]]
         [clojure.tools.nrepl.misc :only [response-for]])
   (:import clojure.tools.nrepl.transport.Transport))
 
 
+(defn print-dup-str [x]
+  (binding [*print-dup* true]
+    (pr-str x)))
+
+(defn print-with [out x]
+  (binding [*out* out]
+    (print x)
+    (flush)))
 
 ;;
 ;; Utilities from Ritz
@@ -49,10 +61,16 @@
 ;; Middleware and Handler
 ;;
 
-(defn read-reply [{:keys [symbol transport] :as msg}]
-  (let [results symbol]
+(defn read-reply [{:keys [sym transport] :as msg}]
+    (let [targetpath (.getCanonicalFile (io/as-file "."))
+          backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
+                                        analyzer/analyze)
+          results (->> (query backend (str sym))
+                       (map #(print-dup-str (:clj/form %))))]
     (transport/send
-     transport (response-for msg :value (transform-value results)))
+     transport (response-for msg
+                             :value
+                             (transform-value results)))
     (transport/send transport (response-for msg :status :done))))
 
 (defn wrap-base [handler]

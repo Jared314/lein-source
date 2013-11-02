@@ -3,20 +3,18 @@
             [clojure.java.io :as io]
             [leiningen.core.main :as main]
             [leiningen.core.user :as user]
+            [leiningen.core.eval :as leval]
             [leiningen.core.project :as project]
+            [leiningen.repl :as repl]
             [leiningen.do :as ldo]
             [leiningen.base.storage-provider :refer :all]
+            [leiningen.base.storage-provider.textblockstore :refer [->FileStorage]]
             [leiningen.base.analyzer :as a]
-
             [clojure.tools.nrepl.server :as server]
-            [leiningen.repl :as repl]
-            [leiningen.core.eval :as leval]
             [leiningen.base.middleware :as middleware])
   (:import [org.eclipse.jgit.treewalk TreeWalk]
            [java.net URL Proxy URLStreamHandlerFactory URLStreamHandler URLConnection]
-           [java.io File PushbackReader StringReader]
-           [leiningen.base.storage_provider.textblockstore FileStorage]
-           [leiningen.base.storage_provider FileStorageProvider]))
+           [java.io File PushbackReader StringReader]))
 
 
 (defn print-dup-str [x]
@@ -72,11 +70,11 @@
   (let [nrepl-middleware (remove nil? (concat [(wrap-init-ns project)]
                                               nrepl-middleware))]
     (or nrepl-handler
-        `(clojure.tools.nrepl.server/default-handler
+        `(server/default-handler
            ~@(map #(if (symbol? %) (list 'var %) %) nrepl-middleware)))))
 
 (defn- server-forms [project cfg ack-port start-msg?]
-  [`(let [server# (clojure.tools.nrepl.server/start-server
+  [`(let [server# (server/start-server
                    :bind ~(:host cfg) :port ~(:port cfg)
                    :ack-port ~ack-port
                    :handler ~(handler-for project))
@@ -140,7 +138,7 @@
 
 (defn handle-stream [args]
   (let [targetpath (.getCanonicalFile (io/as-file (first args)))
-        backend (FileStorageProvider. (FileStorage. (io/file targetpath "src"))
+        backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
                                       a/analyze)
         query (read-op? *in*)]
     (if query
@@ -148,27 +146,21 @@
       (write-forms backend *in*))))
 
 
-(defn lazy-read
-  ([rdr] (let [eof (Object.)] (lazy-read rdr (read rdr false eof) eof)))
-  ([rdr data eof]
-   (when (not= eof data)
-     (cons data (lazy-seq (lazy-read rdr (read rdr false eof) eof))))))
-
-(defn read-all [in]
-  (with-open [rdr (clojure.lang.LineNumberingPushbackReader. (io/reader in))]
-    (doall (lazy-read rdr))))
-
-(defn build-inject [v]
+(defn build-resource-inject [v]
   (let [f (io/resource (:file (meta v)))]
-    (read-all f)))
+    (a/read-all f)))
 
 (defn handle-repl [project opts]
-  (let [p (update-in project
+  (let [injects (concat (build-resource-inject #'a/analyze)
+                        (build-resource-inject #'leiningen.base.storage-provider.textblockstore/->FileStorage)
+                        (build-resource-inject #'leiningen.base.storage-provider/->FileStorageProvider)
+                        (build-resource-inject #'middleware/wrap-base))
+        p (update-in project
                      [:repl-options :nrepl-middleware]
                      #(into [#'middleware/wrap-base] %))
         p (update-in p
                      [:injections]
-                     concat (build-inject #'middleware/wrap-base))
+                     concat injects)
         cfg {:host (or (repl/opt-host opts) (repl/repl-host project))
              :port (or (repl/opt-port opts) (repl/repl-port project))}]
     ;; Duplicate of leiningen.repl :headless because

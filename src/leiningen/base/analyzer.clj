@@ -1,9 +1,6 @@
 (ns leiningen.base.analyzer
-  (:require [clojure.string :as string]
-            [clojure.java.io :as io])
+  (:require [clojure.java.io :as io])
   (:import [java.io PushbackReader StringReader]))
-
-
 
 (defn lazy-read
   ([rdr] (let [eof (Object.)] (lazy-read rdr (read rdr false eof) eof)))
