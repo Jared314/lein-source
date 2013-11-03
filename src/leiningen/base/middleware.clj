@@ -61,22 +61,38 @@
 ;; Middleware and Handler
 ;;
 
-(defn read-reply [{:keys [sym transport] :as msg}]
-    (let [targetpath (.getCanonicalFile (io/as-file "."))
-          backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
-                                        analyzer/analyze)
-          results (->> (query backend (str sym))
-                       (map #(print-dup-str (:clj/form %))))]
+(defn read-handler [{:keys [sym transport] :as msg}]
+  (let [targetpath (.getCanonicalFile (io/as-file "."))
+        backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
+                                       analyzer/analyze)
+        results (->> (query backend (str sym))
+                     (map #(print-dup-str (:clj/form %))))]
     (transport/send
      transport (response-for msg
                              :value
                              (transform-value results)))
     (transport/send transport (response-for msg :status :done))))
 
+(defn write-handler [{:keys [sym transport] :as msg}]
+  (let [targetpath (.getCanonicalFile (io/as-file "."))
+        backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
+                                       analyzer/analyze)
+        results (->> (str sym)
+                     analyzer/analyze
+                     (store backend)
+                     (map #(%))
+                     dorun)]
+    (transport/send
+     transport (response-for msg
+                             :value
+                             (transform-value true)))
+    (transport/send transport (response-for msg :status :done))))
+
 (defn wrap-base [handler]
   (fn [{:keys [op] :as msg}]
     (case op
-      "leiningen.base/read" (read-reply msg)
+      "leiningen.base/read" (read-handler msg)
+      "leiningen.base/write" (write-handler msg)
       (handler msg))))
 
 (set-descriptor!
@@ -84,5 +100,9 @@
  {:handles
   {"leiningen.base/read"
    {:doc "Return a list of forms matching the specified namespace or symbol."
-    :requires {"symbol" "The namespace qualified symbol to lookup"}
-    :returns {"status" "done"}}}})
+    :requires {"sym" "The namespace qualified symbol to lookup"}
+    :returns {"status" "done"}}}
+  "leiningen.base/write"
+  {:doc "Return a list of forms matching the specified namespace or symbol."
+   :requires {"sym" "The namespace qualified symbol to lookup"}
+   :returns {"status" "done"}}})
