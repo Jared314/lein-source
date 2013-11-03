@@ -139,9 +139,8 @@
 (defn handle-stream [args]
   (let [targetpath (.getCanonicalFile (io/as-file (first args)))
         backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
-                                      a/analyze)
-        query (read-op? *in*)]
-    (if query
+                                      a/analyze)]
+    (if (read-op? *in*)
       (get-forms backend *in* *out*)
       (write-forms backend *in*))))
 
@@ -150,17 +149,24 @@
   (let [f (io/resource (:file (meta v)))]
     (a/read-all f)))
 
+(defn build-backend-inject [v]
+  (list 'reset! 'leiningen.base.middleware/backend
+           (list '->FileStorageProvider
+            (list '->FileStorage (list 'clojure.java.io/file (list '.getCanonicalFile (list 'clojure.java.io/as-file v)) "src"))
+            'leiningen.base.analyzer/analyze)))
+
 (defn handle-repl [project opts]
-  (let [injects (concat (build-resource-inject #'a/analyze)
+  (let [backend (build-backend-inject (first opts))
+        injects (concat (build-resource-inject #'a/analyze)
                         (build-resource-inject #'leiningen.base.storage-provider.textblockstore/->FileStorage)
                         (build-resource-inject #'leiningen.base.storage-provider/->FileStorageProvider)
-                        (build-resource-inject #'middleware/wrap-base))
+                        (build-resource-inject #'middleware/wrap-base)
+                        [backend])
         p (update-in project
                      [:repl-options :nrepl-middleware]
                      #(into [#'middleware/wrap-base] %))
-        p (update-in p
-                     [:injections]
-                     concat injects)
+        p (update-in p [:injections] concat injects)
+        opts (nnext opts)
         cfg {:host (or (repl/opt-host opts) (repl/repl-host project))
              :port (or (repl/opt-port opts) (repl/repl-port project))}]
     ;; Duplicate of leiningen.repl :headless because
@@ -174,14 +180,14 @@
                      true))))
 
 (defn parse-args [project args]
-  (let [opt (string/lower-case (string/trim (first args)))]
+  (let [opt (string/lower-case (string/trim (second args)))]
     (case opt
-      "--nrepl" (handle-repl project (rest args))
+      "--nrepl" (handle-repl project args)
       (handle-stream args))))
 
 ;;
 ;; echo "(ns stuff.core) (defn thing [] true)" | lein base .
-;; lein base --nrepl
+;; lein base . --nrepl
 ;;
 (defn
   base

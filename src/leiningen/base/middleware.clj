@@ -61,11 +61,10 @@
 ;; Middleware and Handler
 ;;
 
+(def backend (atom nil))
+
 (defn read-handler [{:keys [sym transport] :as msg}]
-  (let [targetpath (.getCanonicalFile (io/as-file "."))
-        backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
-                                       analyzer/analyze)
-        results (->> (query backend (str sym))
+  (let [results (->> (query @backend (str sym))
                      (map #(print-dup-str (:clj/form %))))]
     (transport/send
      transport (response-for msg
@@ -74,12 +73,9 @@
     (transport/send transport (response-for msg :status :done))))
 
 (defn write-handler [{:keys [sym transport] :as msg}]
-  (let [targetpath (.getCanonicalFile (io/as-file "."))
-        backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
-                                       analyzer/analyze)
-        results (->> (str sym)
+  (let [results (->> (str sym)
                      analyzer/analyze
-                     (store backend)
+                     (store @backend)
                      (map #(%))
                      dorun)]
     (transport/send
