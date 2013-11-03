@@ -6,12 +6,12 @@ A Leiningen v2 plugin that provides the `source` and `base` tasks.
 
 User-level:
 
-Put `[lein-source "0.2.0"]` into the `:plugins` vector of your
+Put `[lein-source "0.3.0"]` into the `:plugins` vector of your
 `:user` profile.
 
 Project-level:
 
-Put `[lein-source "0.2.0"]` into the `:plugins` vector of your project.clj.
+Put `[lein-source "0.3.0"]` into the `:plugins` vector of your project.clj.
 
 ## Source Task
 
@@ -50,7 +50,7 @@ Piped Input
 
     $ echo "(ns stuff.core) (defn thing [] true)" | lein base .
 
-"Headless" nREPL Input
+"Headless" nREPL Server Input
 
     $ lein base . --nrepl
 
