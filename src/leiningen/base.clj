@@ -155,13 +155,21 @@
             (list '->FileStorage (list 'clojure.java.io/file (list '.getCanonicalFile (list 'clojure.java.io/as-file v)) "src"))
             'leiningen.base.analyzer/analyze)))
 
+(defn build-version-inject []
+  (let [fs (.getResources (.getContextClassLoader (Thread/currentThread))
+                          "project.clj")
+        f (first (filter #(not= -1 (.indexOf (str %) "lein-source")) (enumeration-seq fs)))
+        v (when f (nth (read-string (slurp f)) 2))]
+    (list 'reset! 'leiningen.base.middleware/version v)))
+
 (defn handle-repl [project opts]
   (let [backend (build-backend-inject (first opts))
+        version (build-version-inject)
         injects (concat (build-resource-inject #'a/analyze)
                         (build-resource-inject #'leiningen.base.storage-provider.textblockstore/->FileStorage)
                         (build-resource-inject #'leiningen.base.storage-provider/->FileStorageProvider)
                         (build-resource-inject #'middleware/wrap-base)
-                        [backend])
+                        [backend version])
         p (update-in project
                      [:repl-options :nrepl-middleware]
                      #(into [#'middleware/wrap-base] %))

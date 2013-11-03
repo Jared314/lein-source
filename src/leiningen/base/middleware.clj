@@ -62,6 +62,7 @@
 ;;
 
 (def backend (atom nil))
+(def version (atom nil))
 
 (defn read-handler [{:keys [sym transport] :as msg}]
   (let [results (->> (query @backend (str sym))
@@ -84,11 +85,20 @@
                              (transform-value true)))
     (transport/send transport (response-for msg :status :done))))
 
+(defn version-handler [{:keys [transport] :as msg}]
+  (transport/send transport
+                  (response-for msg
+                                :value
+                                (transform-value (str "\"" @version "\""))))
+  (transport/send transport (response-for msg :status :done)))
+
+
 (defn wrap-base [handler]
   (fn [{:keys [op] :as msg}]
     (case op
       "leiningen.base/read" (read-handler msg)
       "leiningen.base/write" (write-handler msg)
+      "leiningen.base/version" (version-handler msg)
       (handler msg))))
 
 (set-descriptor!
@@ -101,4 +111,7 @@
   "leiningen.base/write"
   {:doc "Return a list of forms matching the specified namespace or symbol."
    :requires {"sym" "The namespace qualified symbol to lookup"}
+   :returns {"status" "done"}}
+  "leiningen.base/version"
+  {:doc "Returns a string of the current lein-source version number."
    :returns {"status" "done"}}})
