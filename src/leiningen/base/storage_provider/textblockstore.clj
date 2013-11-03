@@ -8,7 +8,7 @@
   (generate-ns-writes [this n v]))
 
 
-(defn- namespace->path
+(defn namespace->path
   ([n] (namespace->path n "clj"))
   ([n ext] (-> n namespace-munge (string/replace \. \/) (str "." ext))))
 
