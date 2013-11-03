@@ -40,9 +40,21 @@ Chained tasks are allowed using the same syntax as `lein do`.
 
 ## Base Task
 
-The base task will write clojure forms, from the input stream, into the correct file and directory structure, based on the specified namespaces.
+The base task will read/write clojure forms, from the input stream or nrepl, into the correct file and directory structure, based on the specified namespaces.
+
+Piped Input
+
+    $ echo "stuff.core" | lein base .
+
+    $ echo "stuff.core/thing" | lein base .
 
     $ echo "(ns stuff.core) (defn thing [] true)" | lein base .
+
+"Headless" nREPL Input
+
+    $ lein base . --nrepl
+
+    $ lein base . --nrepl :port 1234
 
 Chained tasks are allowed using the same syntax as `lein do`.
 
