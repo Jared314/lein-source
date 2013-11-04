@@ -115,6 +115,8 @@
 
 ;; Actions
 
+;; Handle Stream
+
 (defn write-forms [backend in]
   (->> in
        a/analyze
@@ -134,26 +136,26 @@
     (.unread s c)
     (not= \( (char c))))
 
-
-
-(defn handle-stream [args]
-  (let [targetpath (.getCanonicalFile (io/as-file (first args)))
-        backend (->FileStorageProvider (->FileStorage (io/file targetpath "src"))
+(defn handle-stream [project args]
+  (let [source-path (first (:source-paths project))
+        backend (->FileStorageProvider (->FileStorage source-path)
                                       a/analyze)]
     (if (read-op? *in*)
       (get-forms backend *in* *out*)
       (write-forms backend *in*))))
 
 
+;; Handle nREPL
+
 (defn build-resource-inject [v]
   (let [f (io/resource (:file (meta v)))]
     (a/read-all f)))
 
-(defn build-backend-inject [v]
-  (list 'reset! 'leiningen.base.middleware/backend
-           (list '->FileStorageProvider
-            (list '->FileStorage (list 'clojure.java.io/file (list '.getCanonicalFile (list 'clojure.java.io/as-file v)) "src"))
-            'leiningen.base.analyzer/analyze)))
+(defn build-backend-inject [source-path]
+    (list 'reset! 'leiningen.base.middleware/backend
+          (list '->FileStorageProvider
+                (list '->FileStorage source-path)
+                'leiningen.base.analyzer/analyze)))
 
 (defn build-version-inject []
   (let [fs (.getResources (.getContextClassLoader (Thread/currentThread))
@@ -163,7 +165,7 @@
     (list 'reset! 'leiningen.base.middleware/version v)))
 
 (defn handle-repl [project opts]
-  (let [backend (build-backend-inject (first opts))
+  (let [backend (build-backend-inject (first (:source-paths project)))
         version (build-version-inject)
         injects (concat (build-resource-inject #'a/analyze)
                         (build-resource-inject #'leiningen.base.storage-provider.textblockstore/->FileStorage)
@@ -191,11 +193,13 @@
   (let [opt (string/lower-case (string/trim (second args)))]
     (case opt
       "--nrepl" (handle-repl project args)
-      (handle-stream args))))
+      (handle-stream project args))))
 
 ;;
 ;; echo "(ns stuff.core) (defn thing [] true)" | lein base .
-;; lein base . --nrepl
+;; lein base . --nrepl :port 12345
+;; (require '[clojure.tools.nrepl :as repl])
+;; (with-open [conn (repl/connect :port 12345)] (-> (repl/client conn 1000) (repl/message { :op "leiningen.base/version" }) repl/response-values))
 ;;
 (defn
   base
