@@ -1,7 +1,7 @@
-(ns leiningen.base.storage-provider
+(ns leiningen.source.storage-provider
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
-            [leiningen.base.storage-provider.textblockstore :refer :all])
+            [leiningen.source.storage-provider.textblockstore :refer :all])
   (:import [java.io StringReader PushbackReader]))
 
 (defn update-values [f m]

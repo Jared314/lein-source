@@ -1,10 +1,10 @@
-(ns leiningen.base.middleware
+(ns leiningen.source.middleware
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
             [clojure.tools.nrepl.transport :as transport]
-            [leiningen.base.analyzer :as analyzer]
-            [leiningen.base.storage-provider :refer :all]
-            [leiningen.base.storage-provider.textblockstore :refer [->FileStorage]])
+            [leiningen.source.analyzer :as analyzer]
+            [leiningen.source.storage-provider :refer :all]
+            [leiningen.source.storage-provider.textblockstore :refer [->FileStorage]])
   (:use [clojure.tools.nrepl.middleware :only [set-descriptor!]]
         [clojure.tools.nrepl.misc :only [response-for]])
   (:import clojure.tools.nrepl.transport.Transport))
@@ -73,8 +73,8 @@
                              (transform-value results)))
     (transport/send transport (response-for msg :status :done))))
 
-(defn write-handler [{:keys [sym transport] :as msg}]
-  (let [results (->> (str sym)
+(defn write-handler [{:keys [query transport] :as msg}]
+  (let [results (->> (str query)
                      analyzer/analyze
                      (store @backend)
                      (map #(%))
@@ -93,25 +93,25 @@
   (transport/send transport (response-for msg :status :done)))
 
 
-(defn wrap-base [handler]
+(defn wrap-source [handler]
   (fn [{:keys [op] :as msg}]
     (case op
-      "leiningen.base/read" (read-handler msg)
-      "leiningen.base/write" (write-handler msg)
-      "leiningen.base/version" (version-handler msg)
+      "leiningen.source/read" (read-handler msg)
+      "leiningen.source/write" (write-handler msg)
+      "leiningen.source/version" (version-handler msg)
       (handler msg))))
 
 (set-descriptor!
- #'wrap-base
+ #'wrap-source
  {:handles
-  {"leiningen.base/read"
+  {"leiningen.source/read"
    {:doc "Return a list of forms matching the specified namespace or symbol."
     :requires {"sym" "The namespace qualified symbol to lookup"}
     :returns {"status" "done"}}}
-  "leiningen.base/write"
+  "leiningen.source/write"
   {:doc "Return a list of forms matching the specified namespace or symbol."
-   :requires {"sym" "The namespace qualified symbol to lookup"}
+   :requires {"query" "The namespace qualified symbol to lookup"}
    :returns {"status" "done"}}
-  "leiningen.base/version"
+  "leiningen.source/version"
   {:doc "Returns a string of the current lein-source version number."
    :returns {"status" "done"}}})

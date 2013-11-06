@@ -1,5 +1,5 @@
-(ns leiningen.base.storage-provider.gitblockstore
-  (:require [leiningen.base.storage-provider.textblockstore :as tbs]
+(ns leiningen.source.storage-provider.gitblockstore
+  (:require [leiningen.source.storage-provider.textblockstore :as tbs]
             [clojure.java.io :as io]
             [clojure.string :as string]
             [clj-jgit.porcelain :as jgit]
