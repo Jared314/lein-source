@@ -1,4 +1,4 @@
-(ns leiningen.source
+(ns leiningen.base
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
             [clojure.walk :as walk]
@@ -111,7 +111,7 @@ Get the latest version of Leiningen at http://leiningen.org or by executing
 
 
 (defn ^:no-project-needed ^:higher-order
-  source
+  base
   "A Leiningen plugin to pull project configuration from different locations."
   [project & args]
   (let [[f-args other-args] (split-args args)
