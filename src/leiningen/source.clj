@@ -1,4 +1,4 @@
-(ns leiningen.base
+(ns leiningen.source
   (:require [clojure.string :as string]
             [clojure.java.io :as io]
             [leiningen.core.main :as main]
@@ -7,11 +7,11 @@
             [leiningen.core.project :as project]
             [leiningen.repl :as repl]
             [leiningen.do :as ldo]
-            [leiningen.base.storage-provider :refer :all]
-            [leiningen.base.storage-provider.textblockstore :refer [->FileStorage]]
-            [leiningen.base.analyzer :as a]
+            [leiningen.source.storage-provider :refer :all]
+            [leiningen.source.storage-provider.textblockstore :refer [->FileStorage]]
+            [leiningen.source.analyzer :as a]
             [clojure.tools.nrepl.server :as server]
-            [leiningen.base.middleware :as middleware])
+            [leiningen.source.middleware :as middleware])
   (:import [org.eclipse.jgit.treewalk TreeWalk]
            [java.net URL Proxy URLStreamHandlerFactory URLStreamHandler URLConnection]
            [java.io File PushbackReader StringReader]))
@@ -152,29 +152,29 @@
     (a/read-all f)))
 
 (defn build-backend-inject [source-path]
-    (list 'reset! 'leiningen.base.middleware/backend
+    (list 'reset! 'leiningen.source.middleware/backend
           (list '->FileStorageProvider
                 (list '->FileStorage source-path)
-                'leiningen.base.analyzer/analyze)))
+                'leiningen.source.analyzer/analyze)))
 
 (defn build-version-inject []
   (let [fs (.getResources (.getContextClassLoader (Thread/currentThread))
                           "project.clj")
         f (first (filter #(not= -1 (.indexOf (str %) "lein-source")) (enumeration-seq fs)))
         v (when f (nth (read-string (slurp f)) 2))]
-    (list 'reset! 'leiningen.base.middleware/version v)))
+    (list 'reset! 'leiningen.source.middleware/version v)))
 
 (defn handle-repl [project opts]
   (let [backend (build-backend-inject (first (:source-paths project)))
         version (build-version-inject)
         injects (concat (build-resource-inject #'a/analyze)
-                        (build-resource-inject #'leiningen.base.storage-provider.textblockstore/->FileStorage)
-                        (build-resource-inject #'leiningen.base.storage-provider/->FileStorageProvider)
-                        (build-resource-inject #'middleware/wrap-base)
+                        (build-resource-inject #'leiningen.source.storage-provider.textblockstore/->FileStorage)
+                        (build-resource-inject #'leiningen.source.storage-provider/->FileStorageProvider)
+                        (build-resource-inject #'middleware/wrap-source)
                         [backend version])
         p (update-in project
                      [:repl-options :nrepl-middleware]
-                     #(into [#'middleware/wrap-base] %))
+                     #(into [#'middleware/wrap-source] %))
         p (update-in p [:injections] concat injects)
         opts (nnext opts)
         cfg {:host (or (repl/opt-host opts) (repl/repl-host project))
@@ -196,13 +196,13 @@
       (handle-stream project args))))
 
 ;;
-;; echo "(ns stuff.core) (defn thing [] true)" | lein base .
-;; lein base . --nrepl :port 12345
+;; echo "(ns stuff.core) (defn thing [] true)" | lein source .
+;; lein source . --nrepl :port 12345
 ;; (require '[clojure.tools.nrepl :as repl])
-;; (with-open [conn (repl/connect :port 12345)] (-> (repl/client conn 1000) (repl/message { :op "leiningen.base/version" }) repl/response-values))
+;; (with-open [conn (repl/connect :port 12345)] (-> (repl/client conn 1000) (repl/message { :op "leiningen.source/version" }) repl/response-values))
 ;;
 (defn
-  base
+  source
   "A Leiningen plugin to read, write, and run forms in a backend."
   [project & args]
   (let [[f-args other-args] (split-args args)]
