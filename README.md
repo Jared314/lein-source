@@ -1,6 +1,8 @@
 # lein-source
 
-A Leiningen v2 plugin that provides the `source` and `base` tasks.
+Edit Clojure forms, not Clojure files.
+
+<img align="center" src="blob/master/diagram.png?raw=true" alt="Dataflow Diagram" />
 
 ## Install
 
