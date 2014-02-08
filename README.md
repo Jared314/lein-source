@@ -2,7 +2,7 @@
 
 Edit Clojure forms, not Clojure files.
 
-<img align="center" src="blob/master/diagram.png?raw=true" alt="Dataflow Diagram" />
+<img align="center" src="/diagram.png?raw=true" alt="Dataflow Diagram" />
 
 ## Install
 
